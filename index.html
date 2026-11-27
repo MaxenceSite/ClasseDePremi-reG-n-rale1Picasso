@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Révisions Première Générale — Willaert Maxence</title>
+    <!-- Chargement de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Importation de la police Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Masque la barre de défilement horizontale sur la barre d'onglets sur mobile */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+    <!-- =====================================================================
+         EN-TÊTE MINIMALISTE & SIGNATURE DU DÉLÉGUÉ
+         ===================================================================== -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 pt-5 pb-0">
+            
+            <!-- Titre principal & mention du créateur -->
+            <div class="mb-4">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                    Révisions Première Générale
+                </h1>
+                <p class="mt-1.5 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                    <span>Créé par <strong>Maxence, délégué capable</strong></span>
+                </p>
+            </div>
+
+            <!-- =====================================================================
+                 BARRE D'ONGLETS PRINCIPALE
+                 ===================================================================== -->
+            <nav aria-label="Matières" class="flex items-center gap-2 overflow-x-auto no-scrollbar -mb-px" id="tabsContainer">
+                <!-- Les onglets sont générés automatiquement par JavaScript -->
+            </nav>
+
+        </div>
+    </header>
+
+    <!-- =====================================================================
+         FIL VERTICAL DES LEÇONS (FEED SCROLLABLE)
+         ===================================================================== -->
+    <main class="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <div id="lessonsFeed" class="space-y-6">
+            <!-- Les leçons de l'onglet actif s'affichent ici les unes sous les autres -->
+        </div>
+    </main>
+
+    <!-- =====================================================================
+         PIED DE PAGE DISCRET
+         ===================================================================== -->
+    <footer class="border-t border-slate-200 bg-white py-6 mt-12">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center text-xs sm:text-sm text-slate-500">
+            Révisions Première Générale • Créé par <strong class="text-slate-700">Maxence, délégué capable</strong>
+        </div>
+    </footer>
+
+    <!-- =====================================================================
+         DONNÉES & LOGIQUE DE NAVIGATION PAR ONGLETS + EXERCICES D'ANGLAIS
+         ===================================================================== -->
+    <script>
+        /**
+         * Définition des onglets principaux et des sous-onglets d'Anglais
+         */
+        const TABS = [
+            { id: 'anglais', label: '🇬🇧 Anglais' },
+            { id: 'nouveautes', label: '🆕 Nouveautés' },
+            { id: 'entraide', label: '🤝 Aider / Contribuer' }
+        ];
+
+        const ENGLISH_SUBTABS = [
+            { id: 'articles', label: '📘 Grammaire : Les articles (a / an, the, Ø)' },
+            { id: 'vocabulaire', label: '📝 Vocabulaire' }
+        ];
+
+        let activeTabId = 'anglais';
+        let activeEnglishSubTab = 'articles';
+
+        /**
+         * Banque complète d'exercices basés directement sur la fiche photo :
+         * - a / an (élément sans le distinguer des autres)
+         * - the (élément spécifique connu de tous / précisé par le contexte / noms de pays au pluriel)
+         * - Ø (notion en général ou groupe tout entier / noms de personnes / noms de pays au singulier)
+         * 9 exercices (6 textes à trous + 3 traductions) sont piochés aléatoirement à chaque série !
+         */
+        const ENGLISH_ARTICLES_EXERCISES = [
+            // --- TEXTES À TROUS (16 exercices) ---
+            {
+                id: 1,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "Last year, I visited ___ England and ___ United States.",
+                hint: "Pays au singulier (Ø) vs pays au pluriel (the). Sépare les deux réponses par un espace.",
+                answer: "Ø / the",
+                accepted: [
+                    "ø the", "0 the", "rien the", "aucun the", "- the",
+                    "ø / the", "0 / the", "rien / the", "aucun / the", "- / the"
+                ],
+                explanation: "Les noms de pays au singulier sont précédés de l'article zéro (Ø England), mais les noms de pays au pluriel sont précédés de « the » (the United States)."
+            },
+            {
+                id: 2,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "___ Prince Harry lives with his family in California.",
+                hint: "Attention à la règle sur les noms de personnes (même avec un titre !).",
+                answer: "Ø",
+                accepted: ["ø", "0", "rien", "aucun", "vide", "zero", "-"],
+                explanation: "Les noms de personnes sont toujours précédés de l'article zéro Ø (exemple exact du cours : Ø Prince Harry)."
+            },
+            {
+                id: 3,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "In general, ___ teenagers spend a lot of time on their phones.",
+                hint: "On parle ici d'un groupe tout entier en général.",
+                answer: "Ø",
+                accepted: ["ø", "0", "rien", "aucun", "vide", "zero", "-"],
+                explanation: "On utilise Ø (article zéro) pour parler d'une notion en général ou d'un groupe tout entier (les adolescents en général)."
+            },
+            {
+                id: 4,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "She adopted ___ dog yesterday, and ___ dog she chose is very friendly.",
+                hint: "1re mention (élément non distingué) puis 2e mention (élément précisé par le contexte).",
+                answer: "a / the",
+                accepted: ["a the", "a / the", "a, the", "a - the"],
+                explanation: "« a » sert à désigner un élément sans le distinguer des autres (a dog). Ensuite, « the » désigne cet élément spécifique parce que le contexte apporte des précisions (the dog she chose)."
+            },
+            {
+                id: 5,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "Look at ___ moon tonight, it is so bright!",
+                hint: "Élément unique, connu de tous.",
+                answer: "the",
+                accepted: ["the"],
+                explanation: "« the » désigne un élément spécifique parce qu'il est connu de tous (the moon, the sun)."
+            },
+            {
+                id: 6,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "He wants to buy ___ electric car next month.",
+                hint: "Un élément parmi d'autres + son voyelle (« electric »).",
+                answer: "an",
+                accepted: ["an"],
+                explanation: "On désigne un élément sans le distinguer des autres (une voiture électrique parmi d'autres) devant un son voyelle : on utilise « an »."
+            },
+            {
+                id: 7,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "___ Queen Elizabeth II lived in ___ Buckingham Palace.",
+                hint: "Nom de personne précédé d'un titre = ?",
+                answer: "Ø",
+                accepted: ["ø", "0", "rien", "aucun", "vide", "zero", "-", "ø ø", "ø / ø"],
+                explanation: "Les noms de personnes (même avec un titre royal comme Queen ou Prince) sont toujours précédés de Ø."
+            },
+            {
+                id: 8,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "We are travelling to ___ Netherlands and ___ France this summer.",
+                hint: "Pays au pluriel (Netherlands) vs pays au singulier (France).",
+                answer: "the / Ø",
+                accepted: ["the ø", "the 0", "the rien", "the / ø", "the / 0", "the / rien", "the -"],
+                explanation: "« the Netherlands » est un nom de pays au pluriel donc précédé de « the », tandis que « France » est au singulier donc précédé de Ø."
+            },
+            {
+                id: 9,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "___ love and ___ friendship are essential in life.",
+                hint: "Notions abstraites considérées en général.",
+                answer: "Ø / Ø",
+                accepted: ["ø", "0", "rien", "ø ø", "0 0", "rien rien", "ø / ø", "0 / 0", "rien / rien"],
+                explanation: "On utilise Ø (article zéro) pour parler d'une notion en général (l'amour, l'amitié)."
+            },
+            {
+                id: 10,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "Can you pass me ___ salt on the table, please?",
+                hint: "Le contexte précise de quel sel on parle (celui qui est sur la table).",
+                answer: "the",
+                accepted: ["the"],
+                explanation: "« the » désigne un élément spécifique parce que le contexte apporte des précisions (celui qui est sur la table)."
+            },
+            {
+                id: 11,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "She is ___ honest person who always tells ___ truth.",
+                hint: "Le « h » de « honest » est muet (son voyelle) + « la vérité » est connue de tous.",
+                answer: "an / the",
+                accepted: ["an the", "an / the", "an, the"],
+                explanation: "« honest » commence par un son voyelle donc « an » (un élément sans le distinguer des autres), et « the truth » désigne un élément spécifique connu de tous."
+            },
+            {
+                id: 12,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "___ President Macron met ___ King Charles III in ___ Paris.",
+                hint: "Noms de personnes avec un titre = ?",
+                answer: "Ø / Ø",
+                accepted: ["ø", "0", "rien", "ø ø", "ø / ø", "ø ø ø", "ø / ø / ø"],
+                explanation: "Les noms de personnes (President Macron, King Charles III) sont toujours précédés de l'article zéro Ø."
+            },
+            {
+                id: 13,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "My sister wants to become ___ architect in ___ Spain.",
+                hint: "Profession sans distinction particulière (son voyelle) + pays au singulier.",
+                answer: "an / Ø",
+                accepted: ["an ø", "an 0", "an rien", "an / ø", "an / 0", "an / rien", "an -"],
+                explanation: "On utilise « an » devant un nom de métier commençant par un son voyelle (an architect) et Ø devant un nom de pays au singulier (Ø Spain)."
+            },
+            {
+                id: 14,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "___ Philippines are located in Asia, not far from ___ Japan.",
+                hint: "Pays au pluriel vs pays au singulier.",
+                answer: "The / Ø",
+                accepted: ["the ø", "the 0", "the rien", "the / ø", "the / 0", "the / rien", "the -"],
+                explanation: "« The Philippines » est au pluriel (donc « the »), alors que « Japan » est au singulier (donc Ø)."
+            },
+            {
+                id: 15,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "___ cats are independent animals, unlike ___ dogs.",
+                hint: "On parle ici de deux groupes tout entiers en général.",
+                answer: "Ø / Ø",
+                accepted: ["ø", "0", "rien", "ø ø", "0 0", "rien rien", "ø / ø", "0 / 0", "rien / rien"],
+                explanation: "Ø s'utilise pour parler d'une notion en général ou d'un groupe tout entier (les chats et les chiens en général)."
+            },
+            {
+                id: 16,
+                type: 'gap',
+                instruction: "Complète avec le bon article (a, an, the ou Ø) :",
+                prompt: "I watched ___ movie last night. ___ movie was about ___ space.",
+                hint: "1re mention (a) → 2e mention précisée (the) → notion générale (Ø).",
+                answer: "a / the / Ø",
+                accepted: ["a the ø", "a the 0", "a the rien", "a / the / ø", "a / the / 0", "a / the / rien"],
+                explanation: "1) « a movie » (non distingué) ; 2) « The movie » (spécifique car déjà mentionné) ; 3) « Ø space » (notion en général)."
+            },
+
+            // --- PHRASES SIMPLES À TRADUIRE (8 exercices) ---
+            {
+                id: 17,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "Le Prince Harry vient d'Angleterre, mais il habite aux États-Unis.",
+                hint: "Pense bien aux 3 règles du cours : personne (Ø), pays singulier (Ø), pays pluriel (the).",
+                answer: "Prince Harry comes from England, but he lives in the United States.",
+                accepted: [
+                    "prince harry comes from england but he lives in the united states",
+                    "prince harry is from england but he lives in the united states",
+                    "prince harry comes from england but he lives in the us",
+                    "prince harry is from england but he lives in the us",
+                    "prince harry comes from england but he lives in the usa",
+                    "prince harry is from england but he lives in the usa"
+                ],
+                explanation: "Ø Prince Harry (nom de personne = Ø), Ø England (pays au singulier = Ø), the United States (pays au pluriel = the)."
+            },
+            {
+                id: 18,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "J'aime la musique, mais je n'aime pas la musique que tu écoutes.",
+                hint: "1re partie : notion en général (Ø) / 2e partie : musique précise grâce au contexte (the).",
+                answer: "I like music, but I don't like the music you are listening to.",
+                accepted: [
+                    "i like music but i don t like the music you are listening to",
+                    "i like music but i do not like the music you are listening to",
+                    "i like music but i don t like the music you listen to",
+                    "i like music but i do not like the music you listen to",
+                    "i love music but i don t like the music you are listening to",
+                    "i love music but i don t like the music you listen to"
+                ],
+                explanation: "« La musique » en général = Ø music. « La musique que tu écoutes » = the music (spécifique car le contexte apporte des précisions)."
+            },
+            {
+                id: 19,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "Elle a un chien et un chat. Le chien est noir.",
+                hint: "1re phrase : éléments non distingués (a) / 2e phrase : élément déjà connu (the).",
+                answer: "She has a dog and a cat. The dog is black.",
+                accepted: [
+                    "she has a dog and a cat the dog is black",
+                    "she has got a dog and a cat the dog is black",
+                    "she s got a dog and a cat the dog is black"
+                ],
+                explanation: "« a dog » et « a cat » désignent des éléments sans les distinguer des autres ; « The dog » reprend l'élément désormais connu."
+            },
+            {
+                id: 20,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "Les jeunes aiment le sport en général.",
+                hint: "Groupe tout entier (Ø young people / Ø teenagers) + notion en général (Ø sport).",
+                answer: "Young people like sport in general.",
+                accepted: [
+                    "young people like sport in general",
+                    "young people like sports in general",
+                    "teenagers like sport in general",
+                    "teenagers like sports in general",
+                    "young people love sport in general",
+                    "teenagers love sport in general"
+                ],
+                explanation: "On utilise Ø pour parler d'un groupe tout entier (Ø young people) et d'une notion en général (Ø sport)."
+            },
+            {
+                id: 21,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "Regarde le soleil, il brille aujourd'hui !",
+                hint: "Le soleil est un élément unique connu de tous (the sun).",
+                answer: "Look at the sun, it is shining today!",
+                accepted: [
+                    "look at the sun it is shining today",
+                    "look at the sun it s shining today",
+                    "look at the sun it shines today"
+                ],
+                explanation: "« the » désigne un élément spécifique parce qu'il est connu de tous : the sun."
+            },
+            {
+                id: 22,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "Il veut acheter une pomme et une orange.",
+                hint: "Éléments non distingués des autres : attention au son voyelle de « orange » (an).",
+                answer: "He wants to buy an apple and an orange.",
+                accepted: [
+                    "he wants to buy an apple and an orange"
+                ],
+                explanation: "« apple » et « orange » commencent tous les deux par un son voyelle et désignent un élément sans le distinguer des autres → « an apple and an orange »."
+            },
+            {
+                id: 23,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "La France et l'Angleterre sont en Europe.",
+                hint: "Noms de pays au singulier et continent = article zéro (Ø).",
+                answer: "France and England are in Europe.",
+                accepted: [
+                    "france and england are in europe"
+                ],
+                explanation: "Les noms de pays au singulier sont toujours précédés de l'article zéro Ø (Ø France, Ø England)."
+            },
+            {
+                id: 24,
+                type: 'translate',
+                instruction: "Traduis cette phrase simple en anglais :",
+                prompt: "Le professeur Smith travaille aux États-Unis.",
+                hint: "Nom de personne avec un titre (Ø) + nom de pays au pluriel (the).",
+                answer: "Professor Smith works in the United States.",
+                accepted: [
+                    "professor smith works in the united states",
+                    "teacher smith works in the united states",
+                    "professor smith works in the us",
+                    "professor smith works in the usa"
+                ],
+                explanation: "Ø Professor Smith (nom de personne = Ø) et the United States (nom de pays au pluriel = the)."
+            }
+        ];
+
+        /**
+         * Mélange aléatoirement un tableau (algorithme de Fisher-Yates)
+         */
+        function shuffleArray(array) {
+            const copy = [...array];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        /**
+         * Pioche aléatoirement une nouvelle série de 9 exercices (6 textes à trous + 3 traductions)
+         */
+        function pickRandomEnglishExercises() {
+            const gaps = shuffleArray(ENGLISH_ARTICLES_EXERCISES.filter(e => e.type === 'gap')).slice(0, 6);
+            const translates = shuffleArray(ENGLISH_ARTICLES_EXERCISES.filter(e => e.type === 'translate')).slice(0, 3);
+            return [...gaps, ...translates];
+        }
+
+        /**
+         * État des réponses de l'élève pour les exercices d'anglais
+         */
+        let englishExerciseState = {
+            currentExercises: pickRandomEnglishExercises(),
+            answers: {},
+            submitted: false
+        };
+
+        /**
+         * Contenu des autres onglets
+         */
+        const LESSONS_BY_TAB = {
+            'anglais': [],
+            'nouveautes': [
+                {
+                    badge: "Journal des mises à jour",
+                    date: "Dernières modifs",
+                    title: "Quoi de neuf sur le site ?",
+                    contentHtml: `
+                        <p class="text-slate-600 mb-5">
+                            Retrouve ici tout ce qui a été ajouté ou modifié à chaque mise à jour du site :
+                        </p>
+
+                        <div class="space-y-4">
+                            <div class="border border-indigo-200 bg-indigo-50/40 rounded-xl p-4 sm:p-5">
+                                <div class="flex items-center justify-between gap-2 mb-2">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full">
+                                        Dernière mise à jour
+                                    </span>
+                                </div>
+                                <ul class="list-disc list-inside space-y-1.5 text-slate-700 text-sm sm:text-base">
+                                    <li><strong>Anglais — Sous-catégorie « Grammaire : Les articles (a / an, the, Ø) » :</strong> ajout de la leçon exacte du cours avec tous les cas (<em>Ø Prince Harry, Ø England, the United States</em>).</li>
+                                    <li><strong>Exercices interactifs sur les articles :</strong> textes à trous + phrases simples à traduire avec score et corrigé détaillé à la fin.</li>
+                                    <li><strong>Nettoyage :</strong> suppression de l'ancienne leçon d'Histoire et des quiz.</li>
+                                </ul>
+                            </div>
+
+                            <div class="border border-slate-200 bg-slate-50/60 rounded-xl p-4 sm:p-5">
+                                <div class="flex items-center justify-between gap-2 mb-2">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-200/70 px-2.5 py-0.5 rounded-full">
+                                        Mises à jour précédentes
+                                    </span>
+                                </div>
+                                <ul class="list-disc list-inside space-y-1.5 text-slate-700 text-sm sm:text-base">
+                                    <li><strong>Onglet « 🤝 Aider / Contribuer » :</strong> ajout des liens vers le Canva, le groupe Instagram et le groupe Snapchat pour partager vos fiches.</li>
+                                    <li><strong>Onglet « 🆕 Nouveautés » :</strong> création du journal de suivi des mises à jour.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                }
+            ],
+            'entraide': [
+                {
+                    badge: "Collaboration • Classe de Première",
+                    date: "Espace ouvert à tous",
+                    title: "Aider à compléter le site de révision",
+                    contentHtml: `
+                        <p class="text-slate-600 mb-4 leading-relaxed">
+                            Tu veux m'aider à enrichir le site avec des fiches de cours, des dates, du vocabulaire ou des idées d'amélioration ? Rejoins les espaces collaboratifs ci-dessous !
+                        </p>
+
+                        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 mb-4 text-slate-700 text-sm leading-relaxed">
+                            <p class="font-semibold text-indigo-900 mb-1">ℹ️ Fonctionnement des mises à jour</p>
+                            <p class="mb-2">
+                                Il n'est pas possible de mettre à jour le site directement vous-mêmes, mais <strong>je le ferai avec plaisir</strong> dès que besoin ! Comme il est compliqué de modifier le site trop souvent au compte-gouttes, on regroupera vos idées et vos cours pour tout ajouter <strong>en gros paquet</strong> d'un coup.
+                            </p>
+                            <p>
+                                Pour les <strong>matières ou spécialités que je n'ai pas</strong>, c'est tout simple : faites vos fiches de révision de votre côté et envoyez-les-moi pour que je puisse les mettre en ligne pour tout le monde !
+                            </p>
+                        </div>
+
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-amber-900 text-sm">
+                            <p class="font-semibold mb-1">⚠️ Consigne importante</p>
+                            <p>
+                                Merci à tout le monde de <strong>garder son sérieux</strong> sur ces espaces partagés. En revanche, <strong>toute proposition est bonne à prendre</strong> !
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <a
+                                href="https://www.canva.com/design/DAHcAQKeg3U/KIIFiE0vcOr51tjpP9r6_A/edit"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-3.5 rounded-xl transition shadow-sm text-center"
+                            >
+                                <span>🎨 Rejoindre le Canva</span>
+                            </a>
+
+                            <a
+                                href="https://ig.me/j/-3uiGm4xlWas1HFc/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white font-semibold px-4 py-3.5 rounded-xl transition shadow-sm text-center"
+                            >
+                                <span>📸 Groupe Instagram</span>
+                            </a>
+
+                            <a
+                                href="https://snapchat.com/t/nOPI37hc"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold px-4 py-3.5 rounded-xl transition shadow-sm text-center"
+                            >
+                                <span>👻 Groupe Snapchat</span>
+                            </a>
+                        </div>
+                    `
+                }
+            ]
+        };
+
+        /**
+         * Normalise une chaîne de caractères (minuscules, sans accents, espaces propres)
+         */
+        function normalizeText(str) {
+            return str
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/['’\-.,!?/]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        /**
+         * Change la sous-catégorie active dans l'onglet Anglais
+         */
+        function switchEnglishSubTab(subTabId) {
+            activeEnglishSubTab = subTabId;
+            renderFeed();
+        }
+
+        /**
+         * Enregistre la saisie utilisateur sur un exercice d'anglais
+         */
+        function updateEnglishAnswer(exoId, value) {
+            englishExerciseState.answers[exoId] = value;
+        }
+
+        /**
+         * Corrige l'ensemble des exercices d'anglais
+         */
+        function submitEnglishExercises(event) {
+            if (event) event.preventDefault();
+            englishExerciseState.submitted = true;
+            renderFeed();
+
+            setTimeout(() => {
+                const summaryEl = document.getElementById('englishResultsSummary');
+                if (summaryEl) {
+                    summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 60);
+        }
+
+        /**
+         * Réinitialise les exercices d'anglais avec un nouveau tirage aléatoire
+         */
+        function resetEnglishExercises() {
+            englishExerciseState = {
+                currentExercises: pickRandomEnglishExercises(),
+                answers: {},
+                submitted: false
+            };
+            renderFeed();
+        }
+
+        /**
+         * Génère le contenu complet de l'onglet Anglais (sous-catégories + leçon du cours + exercices)
+         */
+        function renderEnglishSection() {
+            const subNavHtml = `
+                <div class="flex flex-wrap items-center gap-2 bg-white border border-slate-200 p-2 rounded-2xl shadow-sm">
+                    ${ENGLISH_SUBTABS.map(sub => {
+                        const isActive = sub.id === activeEnglishSubTab;
+                        return `
+                            <button
+                                type="button"
+                                onclick="switchEnglishSubTab('${sub.id}')"
+                                class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
+                                    isActive
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }"
+                            >
+                                ${sub.label}
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            if (activeEnglishSubTab === 'vocabulaire') {
+                return `
+                    ${subNavHtml}
+                    <article class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
+                                Anglais • Vocabulaire
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">
+                                Prochainement
+                            </span>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-4">
+                            Vocabulaire anglais
+                        </h2>
+                        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 text-slate-700">
+                            <p class="font-semibold text-indigo-900">
+                                📝 Il sera mis à jour pour l'évaluation.
+                            </p>
+                        </div>
+                    </article>
+                `;
+            }
+            // Calcul du score si l'élève a validé ses réponses sur la série tirée au sort
+            const activeExercises = englishExerciseState.currentExercises;
+            let score = 0;
+            const total = activeExercises.length;
+            const evaluated = activeExercises.map(exo => {
+                const rawUser = (englishExerciseState.answers[exo.id] || '').trim();
+                const normUser = normalizeText(rawUser);
+                const isCorrect = normUser.length > 0 && exo.accepted.some(acc => normalizeText(acc) === normUser);
+                if (isCorrect) score += 1;
+                return { exo, rawUser, isCorrect };
+            });
+
+            return `
+                ${subNavHtml}
+
+                <!-- FICHE DE LEÇON : L'ESSENTIEL DU COURS (PHOTO) -->
+                <article class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
+                            Anglais • Grammaire
+                        </span>
+                        <span class="text-xs font-medium text-slate-400">
+                            L'essentiel du cours
+                        </span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">
+                        Les trois articles en anglais : <em>a / an</em>, <em>the</em> et <em>Ø</em>
+                    </h2>
+                    <p class="text-slate-700 mb-5 text-sm sm:text-base font-medium">
+                        Il y a trois articles en anglais : <strong><em>a / an</em></strong>, <strong><em>the</em></strong> et <strong><em>Ø</em> (article zéro)</strong>.
+                    </p>
+
+                    <div class="space-y-4">
+                        <!-- 1. a / an -->
+                        <div class="border border-slate-200 rounded-xl p-4 sm:p-5 bg-slate-50/70">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-700 mb-1.5">
+                                1. Article indéfini : a / an
+                            </h3>
+                            <p class="text-sm sm:text-base text-slate-700">
+                                <strong><em>a / an</em></strong> sert à désigner <strong>un élément sans le distinguer des autres</strong> (<em>a</em> devant un son consonne, <em>an</em> devant un son voyelle).
+                            </p>
+                        </div>
+
+                        <!-- 2. the -->
+                        <div class="border border-slate-200 rounded-xl p-4 sm:p-5 bg-slate-50/70">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-700 mb-1.5">
+                                2. Article défini : the
+                            </h3>
+                            <p class="text-sm sm:text-base text-slate-700">
+                                <strong><em>the</em></strong> désigne <strong>un élément spécifique parce qu'il est connu de tous ou parce que le contexte apporte des précisions</strong>.
+                            </p>
+                        </div>
+
+                        <!-- 3. Ø -->
+                        <div class="border border-slate-200 rounded-xl p-4 sm:p-5 bg-slate-50/70">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-700 mb-1.5">
+                                3. Article zéro : Ø
+                            </h3>
+                            <p class="text-sm sm:text-base text-slate-700">
+                                <strong><em>Ø</em></strong> s'utilise pour parler <strong>d'une notion en général ou d'un groupe tout entier</strong>.
+                            </p>
+                        </div>
+
+                        <!-- Attention : règle sur les noms de personnes et de pays -->
+                        <div class="border border-amber-200 bg-amber-50/80 rounded-xl p-4 sm:p-5 text-amber-950">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-amber-800 mb-1.5">
+                                ⚠️ Attention — Noms de personnes & noms de pays
+                            </h3>
+                            <p class="text-sm sm:text-base leading-relaxed">
+                                Les <strong>noms de personnes</strong> sont toujours précédés de <strong><em>Ø</em></strong> (ex : <em>Ø Prince Harry</em>), ainsi que les <strong>noms de pays</strong> au singulier (ex : <em>Ø England</em>), mais les <strong>noms de pays au pluriel</strong> sont précédés de <strong><em>the</em></strong> (ex : <em>the United States</em>).
+                            </p>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- EXERCICES INTERACTIFS + CORRECTION À LA FIN -->
+                <article class="bg-white border-2 border-indigo-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full">
+                            Entraînement aléatoire • ${total} exercices sur ${ENGLISH_ARTICLES_EXERCISES.length}
+                        </span>
+                        <button
+                            type="button"
+                            onclick="resetEnglishExercises()"
+                            class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline underline-offset-2"
+                        >
+                            🔄 Changer les phrases maintenant
+                        </button>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+                        Exercices d'application sur la leçon
+                    </h2>
+                    <p class="text-slate-600 text-sm sm:text-base mb-6">
+                        Complète les textes à trous avec le bon article (écris <code class="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-800">Ø</code> ou <code class="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-800">rien</code> pour l'article zéro), puis traduis les phrases simples. Les phrases changent à chaque nouvelle série !
+                    </p>
+
+                    <form onsubmit="submitEnglishExercises(event)" class="space-y-5">
+                        ${evaluated.map(({ exo, rawUser, isCorrect }, index) => {
+                            const isGap = exo.type === 'gap';
+                            let cardBorder = 'border-slate-200 bg-slate-50/50';
+                            if (englishExerciseState.submitted) {
+                                cardBorder = isCorrect
+                                    ? 'border-emerald-300 bg-emerald-50/40'
+                                    : 'border-rose-300 bg-rose-50/40';
+                            }
+
+                            return `
+                                <div class="border ${cardBorder} rounded-xl p-4 sm:p-5 transition">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                        <span class="text-xs font-bold uppercase tracking-wider ${isGap ? 'text-sky-700 bg-sky-100/80' : 'text-amber-800 bg-amber-100/80'} px-2.5 py-0.5 rounded-md">
+                                            Exercice ${index + 1} • ${isGap ? 'Texte à trous' : 'Traduction FR → EN'}
+                                        </span>
+                                        ${englishExerciseState.submitted ? `
+                                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                                                ${isCorrect ? '✓ Correct' : '✗ À revoir'}
+                                            </span>
+                                        ` : ''}
+                                    </div>
+
+                                    <p class="text-xs text-slate-500 mb-1.5">${exo.instruction}</p>
+                                    <p class="font-bold text-slate-900 text-base sm:text-lg mb-2">${exo.prompt}</p>
+                                    <p class="text-xs text-indigo-700 mb-3">💡 Indice : ${exo.hint}</p>
+
+                                    <input
+                                        type="text"
+                                        value="${rawUser.replace(/"/g, '&quot;')}"
+                                        oninput="updateEnglishAnswer(${exo.id}, this.value)"
+                                        ${englishExerciseState.submitted ? 'disabled' : ''}
+                                        placeholder="${isGap ? 'Écris l’article (ex : a, an, the, Ø...)' : 'Écris ta traduction en anglais...'}"
+                                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 font-medium text-sm sm:text-base disabled:bg-slate-100 disabled:text-slate-600"
+                                    />
+                                </div>
+                            `;
+                        }).join('')}
+
+                        ${!englishExerciseState.submitted ? `
+                            <div class="pt-2">
+                                <button
+                                    type="submit"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3.5 rounded-xl transition shadow-sm"
+                                >
+                                    <span>Vérifier mes réponses et afficher le corrigé</span>
+                                    <span>→</span>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </form>
+
+                    ${englishExerciseState.submitted ? `
+                        <!-- CORRIGÉ COMPLET À LA FIN DES EXERCICES -->
+                        <div id="englishResultsSummary" class="mt-8 pt-6 border-t-2 border-indigo-100">
+                            <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 sm:p-6 text-center mb-6">
+                                <span class="inline-block text-xs font-bold uppercase tracking-wider text-indigo-700 bg-white px-3 py-1 rounded-full mb-2">
+                                    Bilan des exercices
+                                </span>
+                                <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                                    Ton score : <span class="text-indigo-600">${score} / ${total}</span>
+                                </h3>
+                                <p class="text-sm sm:text-base text-slate-600 mt-1">
+                                    Retrouve toutes les réponses attendues et les explications juste en dessous !
+                                </p>
+                            </div>
+
+                            <h4 class="text-base sm:text-lg font-bold text-slate-900 mb-4">
+                                📋 Corrigé détaillé de tous les exercices
+                            </h4>
+
+                            <div class="space-y-3 mb-6">
+                                ${evaluated.map(({ exo, rawUser, isCorrect }, idx) => `
+                                    <div class="border border-slate-200 bg-slate-50/70 rounded-xl p-4">
+                                        <div class="flex items-center justify-between gap-2 mb-1">
+                                            <span class="text-xs font-bold text-slate-700">Exercice ${idx + 1}</span>
+                                            <span class="text-xs font-bold ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}">
+                                                ${isCorrect ? '✓ Bonne réponse' : `Ta réponse : ${rawUser || '(vide)'}`}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-slate-700 mb-1">${exo.prompt}</p>
+                                        <p class="text-sm font-bold text-emerald-700 mb-1">
+                                            ✅ Réponse attendue : ${exo.answer}
+                                        </p>
+                                        <p class="text-xs text-slate-600 leading-relaxed">
+                                            ${exo.explanation}
+                                        </p>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <button
+                                type="button"
+                                onclick="resetEnglishExercises()"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-3 rounded-xl transition"
+                            >
+                                <span>🔄 Nouvelle série avec d'autres phrases</span>
+                            </button>
+                        </div>
+                    ` : ''}
+                </article>
+            `;
+        }
+
+        /**
+         * Affiche la barre d'onglets principale
+         */
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            if (!container) return;
+            container.innerHTML = TABS.map(tab => {
+                const isActive = tab.id === activeTabId;
+                return `
+                    <button
+                        type="button"
+                        onclick="switchTab('${tab.id}')"
+                        class="px-4 py-3 text-sm sm:text-base font-semibold whitespace-nowrap border-b-2 transition-colors ${
+                            isActive
+                                ? 'border-indigo-600 text-indigo-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                        }"
+                    >
+                        ${tab.label}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Affiche le fil vertical des leçons de l'onglet actif
+         */
+        function renderFeed() {
+            const feed = document.getElementById('lessonsFeed');
+            if (!feed) return;
+
+            if (activeTabId === 'anglais') {
+                feed.innerHTML = renderEnglishSection();
+                return;
+            }
+
+            const lessons = LESSONS_BY_TAB[activeTabId] || [];
+
+            if (lessons.length === 0) {
+                feed.innerHTML = `
+                    <div class="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-sm">
+                        <p class="text-slate-600 font-medium">Aucune leçon disponible dans cet onglet pour le moment.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            feed.innerHTML = lessons.map(lesson => `
+                <article class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
+                            ${lesson.badge}
+                        </span>
+                        <span class="text-xs font-medium text-slate-400">
+                            ${lesson.date}
+                        </span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-4">
+                        ${lesson.title}
+                    </h2>
+                    <div class="text-slate-700 leading-relaxed text-sm sm:text-base">
+                        ${lesson.contentHtml}
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        /**
+         * Change d'onglet actif
+         */
+        function switchTab(tabId) {
+            activeTabId = tabId;
+            renderTabs();
+            renderFeed();
+        }
+
+        /**
+         * Initialisation immédiate et au chargement du DOM
+         */
+        function initApp() {
+            renderTabs();
+            renderFeed();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html>
